@@ -1,0 +1,25 @@
+# Rust
+*/target/
+**/target/
+Cargo.lock
+*.pdb
+
+# Debug builds
+*/debug/
+**/debug/
+
+# Test files
+*/test.rs
+*/test
+*/test_input.txt
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
