@@ -262,4 +262,120 @@ Using password method 0x434C49434B, what is the password to open the door?
 
 ---
 
-# Answer
+# Answer (Part 2)
+
+## Overview
+
+Part 2 introduces a new counting method where we need to count **every click** that lands on 0, not just the final position after each rotation. This means we need to track all intermediate positions during a rotation.
+
+## Key Differences from Part 1
+
+- **Part 1**: Only counts when the dial lands on 0 at the **end** of a rotation
+- **Part 2**: Counts **every time** the dial passes through 0 during the rotation, including the final position
+
+## Implementation
+
+```rust
+fn solve_part2(input: &str) -> i32 {
+    let mut position: i32 = 50;
+    let mut zero_count: i32 = 0;
+
+    for line in input.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        let direction = line.chars().next().unwrap();
+        let distance: i32 = line[1..].trim().parse().expect("Invalid distance");
+
+        // Count how many times we pass through 0 during the rotation
+        zero_count += count_zeros_in_rotation(position, direction, distance);
+
+        // Update position
+        position = match direction {
+            'L' => (position - distance).rem_euclid(100),
+            'R' => (position + distance) % 100,
+            _ => panic!("Invalid direction: {}", direction),
+        };
+    }
+    zero_count
+}
+```
+
+### The Helper Function: `count_zeros_in_rotation`
+
+This function simulates each individual click of the dial and counts how many times it hits position 0:
+
+```rust
+fn count_zeros_in_rotation(start: i32, direction: char, distance: i32) -> i32 {
+    let mut count = 0;
+
+    match direction {
+        'L' => {
+            // Moving left (decreasing numbers, wrapping at 0)
+            for i in 1..=distance {
+                let pos = (start - i).rem_euclid(100);
+                if pos == 0 {
+                    count += 1;
+                }
+            }
+        }
+        'R' => {
+            // Moving right (increasing numbers, wrapping at 99)
+            for i in 1..=distance {
+                let pos = (start + i) % 100;
+                if pos == 0 {
+                    count += 1;
+                }
+            }
+        }
+        _ => panic!("Invalid direction: {}", direction),
+    }
+
+    count
+}
+```
+
+## How It Works
+
+1. **For each rotation instruction**, we simulate every single click
+2. **Range `1..=distance`**: We check positions from the 1st click to the last click (inclusive)
+3. **Calculate position at each click**:
+   - Left: `(start - i).rem_euclid(100)` handles negative wrapping
+   - Right: `(start + i) % 100` handles positive wrapping
+4. **Count zeros**: Increment counter whenever we land on position 0
+
+## Example Walkthrough
+
+Let's trace the example where we start at position 50 and rotate L68:
+
+- Start: 50
+- Click 1: position = 49
+- Click 2: position = 48
+- ...
+- Click 50: position = 0 ✓ (counted!)
+- Click 51: position = 99
+- ...
+- Click 68: position = 82 (final position)
+
+So L68 from position 50 passes through 0 **once** during the rotation.
+
+## Edge Case: Multiple Wraps
+
+The problem warns about rotations like R1000 from position 50:
+- Distance 1000 means 1000 clicks
+- The dial wraps around 10 complete times (1000 ÷ 100 = 10)
+- Each wrap passes through position 0 once
+- So this single rotation counts 0 **ten times**!
+
+## Results
+
+- **Part 1 Password**: 1043 (counting only final positions)
+- **Part 2 Password**: 5963 (counting all intermediate positions)
+
+The difference (5963 - 1043 = 4920) represents all the times the dial passed through 0 **during** rotations but didn't end there.
+
+---
+
+# Answer (Part 1)
