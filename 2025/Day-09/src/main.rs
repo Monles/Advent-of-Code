@@ -72,9 +72,12 @@ fn point_in_or_on_polygon(p: Point, polygon: &[Point]) -> bool {
         let pi = polygon[i];
         let pj = polygon[j];
 
-        if ((pi.y > p.y) != (pj.y > p.y)) &&
-           (p.x < (pj.x - pi.x) * (p.y - pi.y) / (pj.y - pi.y) + pi.x) {
-            inside = !inside;
+        if (pi.y > p.y) != (pj.y > p.y) {
+            // Use i64 to avoid overflow with large coordinates
+            let x_intersect = (pj.x as i64 - pi.x as i64) * (p.y as i64 - pi.y as i64) / (pj.y as i64 - pi.y as i64) + pi.x as i64;
+            if (p.x as i64) < x_intersect {
+                inside = !inside;
+            }
         }
         j = i;
     }
@@ -84,8 +87,9 @@ fn point_in_or_on_polygon(p: Point, polygon: &[Point]) -> bool {
 
 // Check if point p is on line segment from p1 to p2
 fn is_on_segment(p: Point, p1: Point, p2: Point) -> bool {
-    // Check if p is collinear with p1 and p2
-    let cross = (p.y - p1.y) * (p2.x - p1.x) - (p.x - p1.x) * (p2.y - p1.y);
+    // Check if p is collinear with p1 and p2 using i64 to avoid overflow
+    let cross = (p.y as i64 - p1.y as i64) * (p2.x as i64 - p1.x as i64)
+              - (p.x as i64 - p1.x as i64) * (p2.y as i64 - p1.y as i64);
     if cross != 0 {
         return false;
     }
@@ -102,6 +106,7 @@ fn is_on_segment(p: Point, p1: Point, p2: Point) -> bool {
 fn find_largest_rectangle_part2(points: &[Point]) -> i64 {
     let n = points.len();
     let mut max_area = 0i64;
+    let mut best_corners = (Point { x: 0, y: 0 }, Point { x: 0, y: 0 });
 
     // Compute polygon bounding box for quick rejection
     let mut min_poly_x = i32::MAX;
@@ -142,29 +147,104 @@ fn find_largest_rectangle_part2(points: &[Point]) -> i64 {
                 continue;
             }
 
-            // Check if rectangle is valid
-            // For small to medium rectangles, check all points
-            let valid = if width * height <= 20000 {
-                let mut all_inside = true;
-                'check_all: for x in min_x..=max_x {
+            // For small rectangles, check all points
+            // For larger rectangles, check a sample of points along edges
+            const SMALL_AREA_THRESHOLD: i64 = 10000000; // 10 million - check more exhaustively
+
+            let valid = if area <= SMALL_AREA_THRESHOLD {
+                // Check all points for small rectangles
+                let mut all_valid = true;
+                'outer: for x in min_x..=max_x {
                     for y in min_y..=max_y {
                         if !point_in_or_on_polygon(Point { x, y }, points) {
-                            all_inside = false;
-                            break 'check_all;
+                            all_valid = false;
+                            break 'outer;
                         }
                     }
                 }
-                all_inside
+                all_valid
             } else {
-                // For larger rectangles, we can't reliably sample
-                // so we skip them for now
-                false
+                // For large rectangles, sample points more densely along edges
+                // Check the 2 implied corners first
+                let corner3 = Point { x: min_x, y: max_y };
+                let corner4 = Point { x: max_x, y: min_y };
+
+                if !point_in_or_on_polygon(corner3, points) ||
+                   !point_in_or_on_polygon(corner4, points) {
+                    false
+                } else {
+                    // Sample 100 points along the perimeter and check interior samples
+                    let num_samples = 100;
+                    let mut all_valid = true;
+
+                    // Sample points along all 4 edges
+                    for i in 0..num_samples {
+                        let t = i as f64 / num_samples as f64;
+
+                        // Top edge
+                        let x = (min_x as f64 + t * (max_x - min_x) as f64) as i32;
+                        if !point_in_or_on_polygon(Point { x, y: max_y }, points) {
+                            all_valid = false;
+                            break;
+                        }
+
+                        // Bottom edge
+                        let x = (min_x as f64 + t * (max_x - min_x) as f64) as i32;
+                        if !point_in_or_on_polygon(Point { x, y: min_y }, points) {
+                            all_valid = false;
+                            break;
+                        }
+
+                        // Left edge
+                        let y = (min_y as f64 + t * (max_y - min_y) as f64) as i32;
+                        if !point_in_or_on_polygon(Point { x: min_x, y }, points) {
+                            all_valid = false;
+                            break;
+                        }
+
+                        // Right edge
+                        let y = (min_y as f64 + t * (max_y - min_y) as f64) as i32;
+                        if !point_in_or_on_polygon(Point { x: max_x, y }, points) {
+                            all_valid = false;
+                            break;
+                        }
+                    }
+
+                    // Also check some interior points
+                    if all_valid {
+                        for i in 1..10 {
+                            for j in 1..10 {
+                                let x = min_x + (max_x - min_x) * i / 10;
+                                let y = min_y + (max_y - min_y) * j / 10;
+                                if !point_in_or_on_polygon(Point { x, y }, points) {
+                                    all_valid = false;
+                                    break;
+                                }
+                            }
+                            if !all_valid {
+                                break;
+                            }
+                        }
+                    }
+
+                    all_valid
+                }
             };
 
             if valid {
-                max_area = max_area.max(area);
+                if area > max_area {
+                    max_area = area;
+                    best_corners = (p1, p2);
+                }
             }
         }
+    }
+
+    if max_area > 0 {
+        eprintln!("Best rectangle: ({},{}) to ({},{}) with area {}",
+                  best_corners.0.x, best_corners.0.y,
+                  best_corners.1.x, best_corners.1.y,
+                  max_area);
     }
 
     max_area

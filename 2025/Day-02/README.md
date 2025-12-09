@@ -420,29 +420,71 @@ let vec: Vec<i32> = (1..100).map(|x| x * 2).collect();
 
 ---
 
-# --- Part Two ---
+--- Part Two ---
+The Elves just remembered: they can only switch out tiles that are red or green. So, your rectangle can only include red or green tiles.
 
-The clerk quickly discovers that there are still invalid IDs in the ranges in your list. Maybe the young Elf was doing other silly patterns as well?
+In your list, every red tile is connected to the red tile before and after it by a straight line of green tiles. The list wraps, so the first red tile is also connected to the last red tile. Tiles that are adjacent in your list will always be on either the same row or the same column.
 
-Now, an ID is invalid if it is made only of some sequence of digits repeated at least twice. So, 12341234 (1234 two times), 123123123 (123 three times), 1212121212 (12 five times), and 1111111 (1 seven times) are all invalid IDs.
+Using the same example as before, the tiles marked X would be green:
 
-From the same example as before:
+..............
+.......#XXX#..
+.......X...X..
+..#XXXX#...X..
+..X........X..
+..#XXXXXX#.X..
+.........X.X..
+.........#X#..
+..............
+In addition, all of the tiles inside this loop of red and green tiles are also green. So, in this example, these are the green tiles:
 
-- 11-22 still has two invalid IDs, 11 and 22.
-- 95-115 now has two invalid IDs, 99 and 111.
-- 998-1012 now has two invalid IDs, 999 and 1010.
-- 1188511880-1188511890 still has one invalid ID, 1188511885.
-- 222220-222224 still has one invalid ID, 222222.
-- 1698522-1698528 still contains no invalid IDs.
-- 446443-446449 still has one invalid ID, 446446.
-- 38593856-38593862 still has one invalid ID, 38593859.
-- 565653-565659 now has one invalid ID, 565656.
-- 824824821-824824827 now has one invalid ID, 824824824.
-- 2121212118-2121212124 now has one invalid ID, 2121212121.
-Adding up all the invalid IDs in this example produces 4174379265.
+..............
+.......#XXX#..
+.......XXXXX..
+..#XXXX#XXXX..
+..XXXXXXXXXX..
+..#XXXXXX#XX..
+.........XXX..
+.........#X#..
+..............
+The remaining tiles are never red nor green.
 
-What do you get if you add up all of the invalid IDs using these new rules?
+The rectangle you choose still must have red tiles in opposite corners, but any other tiles it includes must now be red or green. This significantly limits your options.
 
+For example, you could make a rectangle out of red and green tiles with an area of 15 between 7,3 and 11,1:
+
+..............
+.......OOOOO..
+.......OOOOO..
+..#XXXXOOOOO..
+..XXXXXXXXXX..
+..#XXXXXX#XX..
+.........XXX..
+.........#X#..
+..............
+Or, you could make a thin rectangle with an area of 3 between 9,7 and 9,5:
+
+..............
+.......#XXX#..
+.......XXXXX..
+..#XXXX#XXXX..
+..XXXXXXXXXX..
+..#XXXXXXOXX..
+.........OXX..
+.........OX#..
+..............
+The largest rectangle you can make in this example using only red and green tiles has area 24. One way to do this is between 9,5 and 2,3:
+
+..............
+.......#XXX#..
+.......XXXXX..
+..OOOOOOOOXX..
+..OOOOOOOOXX..
+..OOOOOOOOXX..
+.........XXX..
+.........#X#..
+..............
+Using two red tiles as opposite corners, what is the largest area of any rectangle you can make using only red and green tiles?
 ---
 
 # Answer (part 2)
@@ -450,10 +492,12 @@ What do you get if you add up all of the invalid IDs using these new rules?
 ## The Key Difference from Part 1
 
 **Part 1:** Invalid IDs are sequences repeated **exactly twice**
+
 - `6464` = "64" repeated 2 times ✓
 - `111` = "1" repeated 3 times ✗ (not exactly 2)
 
 **Part 2:** Invalid IDs are sequences repeated **at least twice**
+
 - `6464` = "64" repeated 2 times ✓
 - `111` = "1" repeated 3 times ✓
 - `12341234` = "1234" repeated 2 times ✓
@@ -491,6 +535,7 @@ fn is_invalid_id_part2(id: u64) -> bool {
 Let's trace through example: **`565656`** (which should be invalid)
 
 #### Step 1: Convert to String
+
 ```rust
 let s = id.to_string();  // "565656"
 let len = s.len();       // 6
@@ -501,6 +546,7 @@ let len = s.len();       // 6
 We try pattern lengths from **1 to 3** (half of 6):
 
 ##### Attempt 1: `pattern_len = 1`
+
 ```rust
 len % pattern_len = 6 % 1 = 0  ✓ (divisible)
 repetitions = 6 / 1 = 6        ✓ (at least 2)
@@ -508,15 +554,18 @@ pattern = "5"                  (first character)
 ```
 
 Check if "565656" = "5" repeated 6 times:
+
 ```
 "565656" = "5" + "6" + "5" + "6" + "5" + "6"
 ```
+
 - First chunk "5" == "5" ✓
 - Second chunk "6" == "5" ✗
 
 **Not a match, continue...**
 
 ##### Attempt 2: `pattern_len = 2`
+
 ```rust
 len % pattern_len = 6 % 2 = 0  ✓ (divisible)
 repetitions = 6 / 2 = 3        ✓ (at least 2)
@@ -524,9 +573,11 @@ pattern = "56"                 (first 2 characters)
 ```
 
 Check if "565656" = "56" repeated 3 times:
+
 ```
 "565656" = "56" + "56" + "56"
 ```
+
 - First chunk "56" == "56" ✓
 - Second chunk "56" == "56" ✓
 - Third chunk "56" == "56" ✓
@@ -543,6 +594,7 @@ len = 9
 Try pattern lengths 1 to 4:
 
 **pattern_len = 1:**
+
 ```
 9 % 1 = 0 ✓
 repetitions = 9 ✓
@@ -552,6 +604,7 @@ Check: "1"+"2"+"3"+"1"+"2"+"3"+"1"+"2"+"3"
 ```
 
 **pattern_len = 3:**
+
 ```
 9 % 3 = 0 ✓
 repetitions = 3 ✓
@@ -570,6 +623,7 @@ len = 7
 Try pattern lengths 1 to 3:
 
 **pattern_len = 1:**
+
 ```
 7 % 1 = 0 ✓
 repetitions = 7 ✓
@@ -579,12 +633,14 @@ Check: "1"+"6"+"9"+"8"+"5"+"2"+"2"
 ```
 
 **pattern_len = 2:**
+
 ```
 7 % 2 = 1 ✗ (not divisible)
 Skip
 ```
 
 **pattern_len = 3:**
+
 ```
 7 % 3 = 1 ✗ (not divisible)
 Skip
@@ -607,12 +663,14 @@ let is_match = s.chars()
 ### Breaking This Down
 
 #### Step 1: Convert string to characters
+
 ```rust
 s.chars().collect::<Vec<_>>()
 // "565656" → ['5', '6', '5', '6', '5', '6']
 ```
 
 #### Step 2: Split into chunks
+
 ```rust
 .chunks(pattern_len)
 // If pattern_len = 2:
@@ -620,6 +678,7 @@ s.chars().collect::<Vec<_>>()
 ```
 
 #### Step 3: Check all chunks match pattern
+
 ```rust
 .all(|chunk| {
     let chunk_str: String = chunk.iter().collect();
@@ -628,6 +687,7 @@ s.chars().collect::<Vec<_>>()
 ```
 
 For each chunk:
+
 - Convert back to string: `['5', '6']` → `"56"`
 - Compare with pattern: `"56" == "56"` ✓
 
@@ -642,6 +702,7 @@ Let's verify the example results:
 **Part 1:** Only `99` is invalid (9 repeated twice)
 
 **Part 2:** `99` AND `111` are invalid
+
 - `99` = "9" × 2 ✓
 - `111` = "1" × 3 ✓
 
@@ -650,6 +711,7 @@ Let's verify the example results:
 **Part 1:** Only `1010` is invalid
 
 **Part 2:** `999` AND `1010` are invalid
+
 - `999` = "9" × 3 ✓
 - `1010` = "10" × 2 ✓
 
@@ -658,6 +720,7 @@ Let's verify the example results:
 **Part 1:** No invalid IDs
 
 **Part 2:** `565656` is invalid
+
 - `565656` = "56" × 3 ✓
 
 ### Range: `824824821-824824827`
@@ -665,6 +728,7 @@ Let's verify the example results:
 **Part 1:** No invalid IDs
 
 **Part 2:** `824824824` is invalid
+
 - `824824824` = "824" × 3 ✓
 
 ### Range: `2121212118-2121212124`
@@ -672,6 +736,7 @@ Let's verify the example results:
 **Part 1:** No invalid IDs
 
 **Part 2:** `2121212121` is invalid
+
 - `2121212121` = "21" × 5 ✓
 
 ## Why This Algorithm Works
@@ -679,6 +744,7 @@ Let's verify the example results:
 ### Efficient Pattern Detection
 
 Instead of trying every possible substring, we:
+
 1. Only try pattern lengths that **divide evenly** into the total length
 2. Stop at the first match (early return)
 3. Use Rust's iterator methods for clean, efficient checking
@@ -686,6 +752,7 @@ Instead of trying every possible substring, we:
 ### Mathematical Insight
 
 For a number to be a repeating pattern:
+
 - Length must be divisible by pattern length
 - Example: `123123` (length 6) could be patterns of length 1, 2, 3, or 6
 - We only need to check 1, 2, 3 (up to half)
@@ -711,10 +778,12 @@ For a number to be a repeating pattern:
 ## Complexity Analysis
 
 **Time Complexity:** O(n²) where n is the number of digits
+
 - Outer loop: O(n) pattern lengths to try
 - Inner loop: O(n) to check all chunks
 
 **Space Complexity:** O(n)
+
 - Convert number to string
 - Create character vector
 
@@ -729,6 +798,7 @@ cargo run    # Get answers for both parts
 ```
 
 Expected output:
+
 ```
 Part 1 - Sum of all invalid IDs: [your answer]
 Part 2 - Sum of all invalid IDs: [your answer]
